@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Quote Builder</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 10px; }
+    select, input, button { width: 100%; padding: 12px; font-size:16px; margin-bottom: 10px; }
+    table { border-collapse: collapse; width: 100%; margin-bottom: 10px; }
+    th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+    th { background-color: #f2f2f2; }
+    #emailContent { margin-top: 20px; }
+  </style>
+</head>
+<body>
+
+<h2>Quote Builder</h2>
+
+<select id="jobSelect">
+  <option value="Exterior Wash">Exterior Wash</option>
+  <option value="Roof Cleaning">Roof Cleaning</option>
+</select>
+
+<input type="number" id="quantity" placeholder="Quantity">
+<input type="number" id="rate" placeholder="Rate">
+
+<button onclick="addJob()">Add Job</button>
+<button onclick="copyEmail()">Copy Email</button>
+
+<div id="emailContent"></div>
+
+<script>
+let jobs = [];
+
+function addJob() {
+  const name = document.getElementById('jobSelect').value;
+  const quantity = parseInt(document.getElementById('quantity').value);
+  const rate = parseFloat(document.getElementById('rate').value);
+  
+  const explanations = {
+    'Exterior Wash': 'Includes washing all exterior walls with soft wash technique.',
+    'Roof Cleaning': 'Removal of moss and debris from roof tiles.'
+  };
+  
+  jobs.push({name, quantity, rate, explanation: explanations[name]});
+  renderEmail();
+}
+
+function renderEmail() {
+  let totalSum = 0;
+  let html = `<div style="overflow-x:auto;"><table>
+      <tr><th>Job</th><th>Qty</th><th>Rate</th><th>Total</th></tr>`;
+  
+  jobs.forEach(job => {
+    const total = job.quantity * job.rate;
+    totalSum += total;
+    html += `<tr>
+      <td>${job.name}</td><td>${job.quantity}</td><td>$${job.rate}</td><td>$${total}</td>
+    </tr>`;
+  });
+  
+  html += `</table></div><p><strong>Total:</strong> $${totalSum}</p>`;
+  
+  jobs.forEach(job => {
+    html += `<p><strong>${job.name}:</strong> ${job.explanation}</p>`;
+  });
+  
+  document.getElementById('emailContent').innerHTML = html;
+}
+
+function copyEmail() {
+  const el = document.createElement('textarea');
+  el.value = document.getElementById('emailContent').innerText;
+  document.body.appendChild(el);
+  el.select();
+  document.execCommand('copy');
+  document.body.removeChild(el);
+  alert('Email copied to clipboard!');
+}
+</script>
+
+</body>
+</html>
