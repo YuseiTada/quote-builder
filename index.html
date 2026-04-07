@@ -1,84 +1,270 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Quote Builder</title>
-  <style>
-    body { font-family: Arial, sans-serif; padding: 10px; }
-    select, input, button { width: 100%; padding: 12px; font-size:16px; margin-bottom: 10px; }
-    table { border-collapse: collapse; width: 100%; margin-bottom: 10px; }
-    th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-    th { background-color: #f2f2f2; }
-    #emailContent { margin-top: 20px; }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Quote Builder</title>
+<style>
+body { font-family: Arial, sans-serif; padding:20px; font-size:14px; line-height:1.4; }
+h2 { margin-bottom:15px; }
+label { display:block; margin-top:10px; font-weight:bold; }
+select, input, textarea { width:100%; padding:8px; margin:2px 0; font-size:14px; }
+button { padding:6px 10px; margin:5px 2px; font-size:14px; cursor:pointer; }
+.table-wrapper { overflow-x:auto; margin-top:20px; }
+.action-link { color:#0073e6; cursor:pointer; text-decoration:underline; margin-left:5px; font-size:12px; }
+
+/* Email Table and Explanation */
+.email-table, .email-table td, .email-table th, .email-explanation, .email-greeting {
+  font-family: Arial, sans-serif;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+/* Mobile adjustments */
+@media screen and (max-width: 600px) {
+  .email-table, .email-table td, .email-table th,
+  .email-explanation, .email-greeting {
+    font-size: 16px !important;
+  }
+}
+</style>
 </head>
 <body>
 
 <h2>Quote Builder</h2>
 
-<select id="jobSelect">
-  <option value="Exterior Wash">Exterior Wash</option>
-  <option value="Roof Cleaning">Roof Cleaning</option>
+<label for="clientName">Client Name:</label>
+<input type="text" id="clientName" placeholder="Enter Client Name">
+
+<label for="clientAddress">Address:</label>
+<input type="text" id="clientAddress" placeholder="Enter Property Address">
+
+<label for="jobSelect">Job:</label>
+<select id="jobSelect" onchange="updateSubOptions()">
+  <option value="Exterior Soft Wash">Exterior Soft Wash</option>
+  <option value="Gutter Clean">Gutter Clean</option>
+  <option value="Deck Wash">Deck Wash</option>
+  <option value="Window Wash">Window Wash</option>
+  <option value="Roof Wash">Roof Wash</option>
+  <option value="Patio Wash">Patio Wash</option>
+  <option value="Driveway Wash">Driveway Wash</option>
+  <option value="Walkway Wash">Walkway Wash</option>
+  <option value="Custom Job">Custom Job</option>
 </select>
 
+<label for="subOption" id="subLabel">Type:</label>
+<select id="subOption"></select>
+<input type="text" id="customType" placeholder="Custom Type" style="display:none;">
+
+<label for="quantity">Quantity:</label>
 <input type="number" id="quantity" placeholder="Quantity">
+
+<label for="rate">Rate:</label>
 <input type="number" id="rate" placeholder="Rate">
+
+<label for="customExplanation" id="expLabel" style="display:none;">Custom Job Explanation:</label>
+<textarea id="customExplanation" rows="2" placeholder="Enter explanation for custom job" style="display:none;"></textarea>
 
 <button onclick="addJob()">Add Job</button>
 <button onclick="copyEmail()">Copy Email</button>
 
-<div id="emailContent"></div>
+<div class="table-wrapper" id="emailContent"></div>
 
 <script>
 let jobs = [];
 
-function addJob() {
-  const name = document.getElementById('jobSelect').value;
-  const quantity = parseInt(document.getElementById('quantity').value);
-  const rate = parseFloat(document.getElementById('rate').value);
+const explanations = {
+  'Exterior Soft Wash': `Includes a treatment to dwell for ~15 minutes to kill and loosen organic growth, then soft wash with low pressure to protect the surface and paint. Surrounding plants and surfaces are rinsed before and after to dilute any overspray and safeguard them.`,
   
-  const explanations = {
-    'Exterior Wash': 'Includes washing all exterior walls with soft wash technique.',
-    'Roof Cleaning': 'Removal of moss and debris from roof tiles.'
-  };
+  'Roof Wash': `We avoid using high pressure to prevent damage, leaks and stripping of protective coatings. Instead, we use a thorough, two step chemical treatment process.<br>
+Initially apply a pretreatment (sodium hypochlorite) to break down lichen, mould, algae and moss. If required, we will scrub lichen to agitate it and allow the treatment to penetrate better. Post treatment (benzalkonium chloride) kills residual grime and prevents regrowth.<br>
+<strong>Please note:</strong> treatments are a slow-acting + longer lasting solution and may take 6 - 12 weeks to take effect, but this is the safest and most effective option for your roof and will maximise its lifespan.`,
   
-  jobs.push({name, quantity, rate, explanation: explanations[name]});
-  renderEmail();
+  'Gutter Clean': `Growth and debris removed by hand and flushed with medium pressure.`,
+  'Deck Wash': `Includes a wash with the pressure dialed to remove surface level growth while protecting the surface from damage. If needed, we apply a longer lasting post treatment to kill residual grime and prevent regrowth.`,
+  'Window Wash': `Scrubbed with a soft brush and rinsed with de-ionised water for a spotless finish. Does not include hard water deposits, pollen, or oxidation etched to the surface.`,
+  'Patio Wash': `Includes a wash with the pressure dialed to remove surface level growth while protecting the surface from damage.`,
+  'Driveway Wash': `Includes a wash with the pressure dialed to remove surface level growth while protecting the surface from damage.`,
+  'Walkway Wash': `Includes a wash with the pressure dialed to remove surface level growth while protecting the surface from damage.`,
+  'Custom Job': ``
+};
+
+const subOptions = {
+  'Exterior Soft Wash': ['Monolithic/Rendered', 'Painted Weatherboard', 'Brick', 'Vinyl/uPVC'],
+  'Gutter Clean': ['1 Storey', '2 Storey'],
+  'Roof Wash': ['Corrugated Iron', 'Tiled', 'Decramastic', 'Ribbed Long Run'],
+  'Deck Wash': ['Timber', 'Painted Timber', 'Kwila', 'Composite/PVC'],
+  'Window Wash': [],
+  'Patio Wash': ['Concrete', 'Pavers', 'Brick'],
+  'Driveway Wash': ['Concrete', 'Pavers', 'Brick'],
+  'Walkway Wash': ['Concrete', 'Pavers', 'Brick'],
+  'Custom Job': []
+};
+
+function updateSubOptions() {
+  const job = document.getElementById('jobSelect').value;
+  const subSelect = document.getElementById('subOption');
+  const customType = document.getElementById('customType');
+  const customExp = document.getElementById('customExplanation');
+  const expLabel = document.getElementById('expLabel');
+
+  if(job === 'Custom Job'){
+    subSelect.style.display = 'none';
+    customType.style.display = 'inline-block';
+    customExp.style.display = 'block';
+    expLabel.style.display = 'block';
+  } else if(subOptions[job].length > 0){
+    subSelect.innerHTML = '';
+    subOptions[job].forEach(opt => {
+      const option = document.createElement('option');
+      option.value = opt;
+      option.text = opt;
+      subSelect.add(option);
+    });
+    subSelect.style.display = 'inline-block';
+    customType.style.display = 'none';
+    customExp.style.display = 'none';
+    expLabel.style.display = 'none';
+  } else {
+    subSelect.style.display = 'none';
+    customType.style.display = 'none';
+    customExp.style.display = 'none';
+    expLabel.style.display = 'none';
+  }
 }
 
-function renderEmail() {
+function addJob() {
+  let name = document.getElementById('jobSelect').value;
+  let sub = '';
+  let explanation = '';
+
+  if(name === 'Custom Job'){
+    name = prompt('Enter Custom Job Name:', '');
+    if(!name) return;
+    sub = document.getElementById('customType').value || '';
+    explanation = document.getElementById('customExplanation').value || '';
+  } else {
+    sub = document.getElementById('subOption').value || '';
+    explanation = explanations[name] || '';
+  }
+
+  const quantity = parseInt(document.getElementById('quantity').value) || 0;
+  const rate = parseFloat(document.getElementById('rate').value) || 0;
+
+  jobs.push({name, sub, quantity, rate, explanation});
+  renderEmail(false);
+}
+
+function editJob(index) {
+  const job = jobs[index];
+  const name = prompt('Edit Job Name:', job.name);
+  if(!name) return;
+  const sub = prompt('Edit Type:', job.sub);
+  const quantity = parseInt(prompt('Edit Quantity:', job.quantity));
+  const rate = parseFloat(prompt('Edit Rate:', job.rate));
+  jobs[index] = {name, sub, quantity, rate, explanation: job.explanation};
+  renderEmail(false);
+}
+
+function deleteJob(index) {
+  if(confirm('Remove this job?')){
+    jobs.splice(index,1);
+    renderEmail(false);
+  }
+}
+
+function renderEmail(isCopying) {
   let totalSum = 0;
-  let html = `<div style="overflow-x:auto;"><table>
-      <tr><th>Job</th><th>Qty</th><th>Rate</th><th>Total</th></tr>`;
-  
-  jobs.forEach(job => {
+  let html = '';
+
+  const clientName = document.getElementById('clientName').value || '[name]';
+  const clientAddress = document.getElementById('clientAddress').value || '[address]';
+
+  // Greeting
+  html += `<div class="email-greeting" style="margin-bottom:10px;">
+    Hey ${clientName},<br>
+    Thanks for your interest regarding the following work to be done at ${clientAddress}:<br>
+    <ul>`;
+  jobs.forEach(job => html += `<li>${job.name}</li>`);
+  html += `</ul>
+    <p>Below is a breakdown of pricing:</p>
+  </div>`;
+
+  // Table
+  html += `<div style="overflow-x:auto;">
+  <table class="email-table" style="border-collapse:collapse; width:100%;">
+    <tr>
+      <th style="background-color:#535fc1; color:#ffffff; text-align:left; padding:6px; border:1px solid #d9d9d9;">Job</th>
+      <th style="background-color:#535fc1; color:#ffffff; text-align:left; padding:6px; border:1px solid #d9d9d9;">Type</th>
+      <th style="background-color:#535fc1; color:#ffffff; text-align:right; padding:6px; border:1px solid #d9d9d9;">Quantity</th>
+      <th style="background-color:#535fc1; color:#ffffff; text-align:right; padding:6px; border:1px solid #d9d9d9;">Rate</th>
+      <th style="background-color:#535fc1; color:#ffffff; text-align:right; padding:6px; border:1px solid #d9d9d9;">Total</th>
+    </tr>`;
+
+  jobs.forEach((job,i) => {
     const total = job.quantity * job.rate;
     totalSum += total;
+    const bgColor = i%2===0 ? '#ffffff' : '#f6f8f9';
     html += `<tr>
-      <td>${job.name}</td><td>${job.quantity}</td><td>$${job.rate}</td><td>$${total}</td>
+      <td style="background-color:${bgColor}; padding:6px; border:1px solid #d9d9d9; text-align:left;">${job.name}${!isCopying ? `<span class="action-link" onclick="editJob(${i})">Edit</span><span class="action-link" onclick="deleteJob(${i})">Delete</span>` : ''}</td>
+      <td style="background-color:${bgColor}; padding:6px; border:1px solid #d9d9d9; text-align:left;">${job.sub}</td>
+      <td style="background-color:${bgColor}; padding:6px; border:1px solid #d9d9d9; text-align:right;">${job.quantity}</td>
+      <td style="background-color:${bgColor}; padding:6px; border:1px solid #d9d9d9; text-align:right;">$${job.rate.toFixed(2)}</td>
+      <td style="background-color:${bgColor}; padding:6px; border:1px solid #d9d9d9; text-align:right;">$${total.toFixed(2)}</td>
     </tr>`;
   });
-  
-  html += `</table></div><p><strong>Total:</strong> $${totalSum}</p>`;
-  
+
+  html += `<tr>
+    <td style="background-color:#f6f8f9; padding:6px; border:1px solid #d9d9d9; font-weight:bold;">Total Price</td>
+    <td style="background-color:#f6f8f9; padding:6px; border:1px solid #d9d9d9;"></td>
+    <td style="background-color:#f6f8f9; padding:6px; border:1px solid #d9d9d9;"></td>
+    <td style="background-color:#f6f8f9; padding:6px; border:1px solid #d9d9d9;"></td>
+    <td style="background-color:#f6f8f9; padding:6px; border:1px solid #d9d9d9; font-weight:bold;">$${totalSum.toFixed(2)} + GST</td>
+  </tr></table></div>`;
+
+  // Explanations
+  let deckJob = jobs.find(j => j.name === 'Deck Wash');
+  let extraJob = jobs.find(j => ['Patio Wash','Driveway Wash','Walkway Wash'].includes(j.name));
+  const skipJobs = new Set();
+  if(deckJob && extraJob) skipJobs.add(extraJob.name);
+
   jobs.forEach(job => {
-    html += `<p><strong>${job.name}:</strong> ${job.explanation}</p>`;
+    if(skipJobs.has(job.name)) return;
+    let title = '';
+    if(deckJob && extraJob && job.name === deckJob.name){
+      title = `<strong>Deck & ${extraJob.name}</strong>`;
+    } else {
+      title = `<strong>${job.name}</strong>`;
+    }
+    let explanationText = job.explanation;
+    // Add single line breaks for Roof Wash only
+    if(job.name === 'Roof Wash') explanationText = explanationText.replace(/\n/g,'<br>');
+    html += `<div class="email-explanation" style="margin:0; line-height:1.4;"><br>${title}: ${explanationText}</div>`;
   });
-  
+
   document.getElementById('emailContent').innerHTML = html;
 }
 
-function copyEmail() {
-  const el = document.createElement('textarea');
-  el.value = document.getElementById('emailContent').innerText;
-  document.body.appendChild(el);
-  el.select();
+function copyEmail(){
+  renderEmail(true);
+  const htmlContent = document.getElementById('emailContent').innerHTML;
+  const tempDiv = document.createElement('div');
+  tempDiv.contentEditable = true;
+  tempDiv.innerHTML = htmlContent;
+  document.body.appendChild(tempDiv);
+  const range = document.createRange();
+  range.selectNodeContents(tempDiv);
+  const sel = window.getSelection();
+  sel.removeAllRanges();
+  sel.addRange(range);
   document.execCommand('copy');
-  document.body.removeChild(el);
-  alert('Email copied to clipboard!');
+  document.body.removeChild(tempDiv);
+  renderEmail(false);
+  alert('Email copied with table formatting!');
 }
-</script>
 
+updateSubOptions();
+renderEmail(false);
+</script>
 </body>
 </html>
